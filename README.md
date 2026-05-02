@@ -19,38 +19,6 @@ The system leverages **Graph Theory**, **Design and Analysis of Algorithms (ADA)
 
 ---
 
-## Core Concepts Used
-
-### 1. Graph Theory
-
-* Nodes → Devices (User, Server, Database, Admin)
-* Edges → Network connections / access permissions
-* Directed Graph → Access flow
-* Weighted Graph → Risk levels
-
-### 2. Design and Analysis of Algorithms
-
-* **BFS / DFS** → Reachability & attack path tracing
-* **Dijkstra’s Algorithm** → Optimal attack path detection
-* **Articulation Points** → Critical vulnerability detection
-* **Cycle Detection** → Suspicious behavior analysis
-* **Backtracking (DFS)** → Enumerating all attack paths
-
-### 3.  DBMS
-
-* Store network topology (nodes & edges)
-* Maintain access logs and attack history
-* Save detected vulnerabilities and alerts
-* Enable querying and analysis of past attacks
-
-### 4. Java (Backend)
-
-* Implements all core algorithms
-* Processes graph data and logs
-* Performs intrusion detection and analysis
-
----
-
 ## System Architecture
 
 ```text
@@ -65,19 +33,19 @@ MySQL Database
 
 ## Features
 
-* 🧩 Custom Network Creation (Graph Input)
-* 🔍 Intrusion Detection using graph traversal
-* 🛣️ Attack Path Analysis (All paths + shortest path)
-* ⚠️ Risk Scoring System
-* 🧠 Vulnerability Detection (Critical Nodes & Edges)
-* 📊 Historical Analysis using DBMS
-* 🌐 Interactive Frontend (React)
+*   Custom Network Creation (Graph Input)
+*   Intrusion Detection using graph traversal
+*   Attack Path Analysis (All paths + shortest path)
+*   Risk Scoring System
+*   Vulnerability Detection (Critical Nodes & Edges)
+*   Historical Analysis using DBMS
+*   Interactive Frontend (React)
 
 ---
 
 ---
 
-## 🚀 How It Works
+## How It Works
 
 1. User creates a network (nodes + edges)
 2. System stores the graph in the database
@@ -97,36 +65,14 @@ MySQL Database
 
 ---
 
-## 📊 Technologies Used
+## Technologies Used
 
-* **Frontend:** React.js
+* **Frontend:** React.js/Next.js + Vue.js
 * **Backend:** Java (Spring Boot)
-* **Database:** MySQL
-* **Algorithms:** Graph-based (BFS, DFS, Dijkstra, etc.)
+* **Database:** PostgreSQL/MongoDB
+* **Algorithms:** Graph-based (BFS, DFS, Dijkstra, Bellman-Ford, Ford-Fulkerson, etc.)
 
 ---
-
-## 📌 Future Enhancements
-
-* Real-time network monitoring
-* Machine learning-based anomaly detection
-* Graph visualization using advanced libraries
-* Integration with real network logs (simulation upgrade)
-
----
-
-## 🎓 Academic Relevance
-
-This project integrates:
-
-* Graph Theory
-* Design and Analysis of Algorithms
-* Database Management Systems
-* Advanced Java
-* Network and Information Security
-
----
-
 
 ## Copyright
 
