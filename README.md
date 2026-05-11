@@ -1,4 +1,4 @@
-# Graph-Based Network Intrusion Detection and Attack Path Analysis System
+# Cybersecurity Network Intrusion Detection and Attack Path Analysis System
 
 ## Overview
 
