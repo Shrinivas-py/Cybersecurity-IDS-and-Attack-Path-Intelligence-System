@@ -198,45 +198,6 @@ WHERE n.is_cut_vertex = TRUE
 GROUP BY n.node_id HAVING appearances >= 2;
 ```
 
-### PostgreSQL Trigger
-
-```sql
--- Auto-escalate node risk when CRITICAL alert is inserted
-CREATE OR REPLACE FUNCTION escalate_node_risk()
-RETURNS TRIGGER AS $$
-BEGIN
-  IF NEW.severity = 'CRITICAL' THEN
-    UPDATE Node
-    SET risk_level = 'HIGH'
-    WHERE node_id = (
-      SELECT target_node FROM AttackSession
-      WHERE session_id = NEW.session_id
-    );
-  END IF;
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER trigger_escalate_risk
-AFTER INSERT ON Alert
-FOR EACH ROW EXECUTE FUNCTION escalate_node_risk();
-```
-
-### MongoDB (Raw Event Logs)
-Used for high-volume, unstructured attack event logs — JSON documents, time-series data. Justification: PostgreSQL handles structured relational data; MongoDB handles unstructured event streams. Demonstrates both relational and document-based storage paradigms.
-
-```json
-{
-  "event_id": "evt_20260516_001",
-  "timestamp": "2026-05-16T10:32:15Z",
-  "source_ip": "192.168.1.45",
-  "target_ip": "10.0.0.2",
-  "attack_type": "port_scan",
-  "algorithm_triggered": "BFS",
-  "risk_score": 87
-}
-```
-
 ---
 
 ## BIS402 — Advanced Java
@@ -301,60 +262,6 @@ public class LogFormatter {
 
 ---
 
-## Attack Prediction Engine
-
-> *"Given the current network state, which node will be attacked next?"*
-
-**Algorithm:**
-```
-Vulnerability Score = α × (node degree)
-                    + β × (cut_vertex_flag × 10)
-                    + γ × (historical_attack_frequency from MongoDB)
-
-Normalize scores → assign probability → output ranked list
-```
-
-**Output:**
-```
-Attack Prediction Results:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Node: DB-Server-01     Risk: ██████████ 91%  ← CRITICAL
-Node: Router-Core      Risk: ████████░░ 74%  ← HIGH
-Node: Auth-Server      Risk: ██████░░░░ 58%  ← MEDIUM
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Recommended Action: Isolate DB-Server-01 immediately
-```
-
----
-
-## Network Hardening Recommender
-
-After cut vertex detection, the system recommends structural fixes:
-
-```
-⚠ Cut Vertex Detected: Router-2
-  → Adding edge [Firewall-1 → Switch-3] eliminates this cut vertex
-  → Estimated risk reduction: 34%
-  → New κ(G) after fix: 3 (was 1)
-
-⚠ Cut Edge Detected: Router-2 → DB-Server
-  → Redundant path suggested: Router-2 → Switch-2 → DB-Server
-  → Estimated risk reduction: 41%
-```
-
----
-
-## Evaluation Demo Script (5 minutes)
-
-1. **Open UI** — pre-built 12-node network visible
-2. **"Run Graph Analysis"** — cut vertices highlight orange, κ(G) displayed
-3. **"Simulate Attack"** — pick source + target, watch BFS sweep → Dijkstra path animate red
-4. **Risk Score** updates live, alert written to DB (PostgreSQL trigger fires)
-5. **"Attack Prediction"** — probability heatmap appears
-6. **"Hardening Recommendations"** — suggested fixes displayed
-7. **DB Panel** — show trigger fired, node risk_level auto-updated to HIGH
-
----
 
 ## Technologies
 
@@ -365,33 +272,11 @@ After cut vertex detection, the system recommends structural fixes:
 | Graph Algorithms | Custom Java implementation |
 | Primary DB | PostgreSQL |
 | Event Log DB | MongoDB |
-| DB Connectivity | JDBC (BIS402) |
-| Build Tool | Maven |
+| DB Connectivity | JDBC |
 
 ---
 
-## Project Structure
 
-```
-graphshield/
-├── backend/
-│   ├── GraphService.java          # BCS405B — all graph theory
-│   ├── AlgorithmEngine.java       # BCS401 — all algorithms
-│   ├── PredictionEngine.java      # Attack prediction
-│   ├── CollectionsUtil.java       # BIS402 — Collections
-│   ├── LogFormatter.java          # BIS402 — String Handling
-│   ├── DatabaseManager.java       # BIS402 — JDBC
-│   └── controllers/               # Spring Boot REST APIs
-├── frontend/
-│   ├── NetworkGraph.jsx           # Graph visualization
-│   ├── RiskHeatmap.jsx            # Attack prediction UI
-│   └── AlertPanel.jsx             # Live alert feed
-├── database/
-│   ├── schema.sql                 # PostgreSQL schema (3NF)
-│   ├── triggers.sql               # Escalation trigger
-│   └── queries.sql                # Key analytical queries
-└── README.md
-```
 
 ---
 
