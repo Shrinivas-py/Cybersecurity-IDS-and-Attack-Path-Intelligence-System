@@ -1,5 +1,5 @@
 # GraphShield 🛡️
-### Predictive Network Intrusion Detection and Attack Path Intelligence System
+### A Framework for Predictive Network Intrusion Detection
 
 > *Every other system optimizes routes between locations. GraphShield secures the network those routes run on.*
 
