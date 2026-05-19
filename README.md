@@ -12,7 +12,7 @@ A full-stack cybersecurity system that models computer networks as **formal dire
 | Subject | Code | How It's Used |
 |---|---|---|
 | Graph Theory | BCS405B | Network IS the graph — cut vertices, connectivity, Euler/Hamiltonian, SCC, planarity |
-| Analysis & Design of Algorithms | BCS401 | BFS, DFS, Dijkstra, Bellman-Ford, Floyd-Warshall, Ford-Fulkerson — each mapped to a design paradigm |
+| Analysis & Design of Algorithms | BCS401 | BFS, DFS, Dijkstra, , Floyd-Warshall, Ford-Fulkerson — each mapped to a design paradigm |
 | Database Management Systems | BCS403 | PostgreSQL (ER model, 3NF, SQL, triggers) + MongoDB (raw event logs) |
 | Advanced Java | BIS402 | Spring Boot backend, Java Collections Framework (6 classes), JDBC, String Handling |
 
