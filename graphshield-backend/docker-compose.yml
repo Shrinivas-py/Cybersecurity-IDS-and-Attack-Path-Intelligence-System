@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: graphshield_db
+    environment:
+      POSTGRES_DB: graphshield
+      POSTGRES_USER: graphuser
+      POSTGRES_PASSWORD: graphpass123
+    ports:
+      - "5432:5432"
+    volumes:
+      - graphshield_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+volumes:
+  graphshield_data:
