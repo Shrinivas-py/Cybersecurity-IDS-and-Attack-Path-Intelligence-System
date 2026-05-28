@@ -1,23 +1,52 @@
 import axios from 'axios'
 
-const BASE_URL =
-  process.env.REACT_APP_API_URL || 'http://localhost:8080/api'
-
-console.log('API URL:', BASE_URL)
-
-const api = axios.create({
-  baseURL: BASE_URL,
+const API = axios.create({
+  baseURL: 'http://localhost:8080/api',
   headers: {
     'Content-Type': 'application/json',
   },
 })
 
+/* NETWORK */
 export const networkApi = {
   getNodes: (networkId = 1) =>
-    api.get(`/network/nodes?networkId=${networkId}`),
+    API.get(`/network/nodes?networkId=${networkId}`),
 
   getEdges: (networkId = 1) =>
-    api.get(`/network/edges?networkId=${networkId}`),
+    API.get(`/network/edges?networkId=${networkId}`),
+
+  addNode: (data) =>
+    API.post('/network/node', data),
+
+  addEdge: (data) =>
+    API.post('/network/edge', data),
 }
 
-export default api
+/* ATTACK */
+export const attackApi = {
+  simulate: (data) =>
+    API.post('/attack/simulate', data),
+}
+
+/* ANALYSIS */
+export const analysisApi = {
+  getProcedure: (name) =>
+    API.get(`/db/procedures?name=${name}`),
+}
+
+/* REMEDIATION */
+export const remediationApi = {
+  applyFix: (data) =>
+    API.post('/remediation/apply', data),
+}
+
+/* DB */
+export const dbApi = {
+  query: (sql) =>
+    API.post('/db/query', { sql }),
+
+  procedure: (name) =>
+    API.get(`/db/procedures?name=${name}`),
+}
+
+export default API
