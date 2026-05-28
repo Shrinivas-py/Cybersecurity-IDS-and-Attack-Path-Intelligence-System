@@ -1,6 +1,7 @@
 import axios from 'axios'
 
-const BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080/api'
+const BASE_URL =
+  process.env.REACT_APP_API_URL || 'http://localhost:8080/api'
 
 const api = axios.create({
   baseURL: BASE_URL,
@@ -25,4 +26,4 @@ export const remediationApi = {
 export const dbApi = {
   query: (sql) => api.post('/db/query', { sql }),
   procedure: (name) => api.get('/db/procedures', { params: { name } }),
-};
+}
