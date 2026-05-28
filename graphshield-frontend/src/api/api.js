@@ -3,6 +3,8 @@ import axios from 'axios'
 const BASE_URL =
   process.env.REACT_APP_API_URL || 'http://localhost:8080/api'
 
+console.log('API URL:', BASE_URL)
+
 const api = axios.create({
   baseURL: BASE_URL,
   headers: {
@@ -16,32 +18,6 @@ export const networkApi = {
 
   getEdges: (networkId = 1) =>
     api.get(`/network/edges?networkId=${networkId}`),
-
-  addNode: (data) =>
-    api.post('/network/node', data),
-
-  addEdge: (data) =>
-    api.post('/network/edge', data),
-}
-
-export const attackApi = {
-  simulate: (data) =>
-    api.post('/attack/simulate', data),
-}
-
-export const remediationApi = {
-  apply: (data) =>
-    api.post('/remediation/apply', data),
-}
-
-export const dbApi = {
-  query: (sql) =>
-    api.post('/db/query', { sql }),
-
-  procedure: (name) =>
-    api.get('/db/procedures', {
-      params: { name },
-    }),
 }
 
 export default api
