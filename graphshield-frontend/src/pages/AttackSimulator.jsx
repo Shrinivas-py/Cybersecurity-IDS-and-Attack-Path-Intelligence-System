@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { networkApi, attackApi } from '../api/api'
 import { Zap, AlertTriangle, ChevronRight } from 'lucide-react'
 
@@ -7,17 +8,20 @@ const attackTypes = [
   { value: 'BFS', label: 'Spread Attack (BFS)', desc: 'Virus/worm spreading layer by layer' },
   { value: 'DFS', label: 'Brute Force (DFS)', desc: 'Tries all possible attack paths' },
 ]
+
 export default function AttackSimulator() {
+  const navigate = useNavigate()
+
   const [nodes, setNodes] = useState([])
   const [attackerNode, setAttackerNode] = useState('')
   const [targetNode, setTargetNode] = useState('')
-  const [attackType, setAttackType] = useState('SHORTEST_PATH')
+  const [attackType, setAttackType] = useState('DIJKSTRA')
   const [result, setResult] = useState(null)
   const [loading, setLoading] = useState(false)
   const [log, setLog] = useState([])
 
   useEffect(() => {
-    networkApi.getNodes().then(r => setNodes(r.data))
+    networkApi.getNodes().then(r => setNodes(r.data)).catch(() => {})
   }, [])
 
   function addLog(msg, color = '#00d4ff') {
@@ -26,6 +30,7 @@ export default function AttackSimulator() {
 
   async function simulate() {
     if (!attackerNode || !targetNode) return
+
     setLoading(true)
     setResult(null)
     setLog([])
@@ -43,16 +48,26 @@ export default function AttackSimulator() {
         attackType,
         networkId: 1
       })
+
       setResult(res.data)
-      addLog(res.data.targetReached
-        ? '⚠ TARGET REACHED — INTRUSION DETECTED!'
-        : '✓ Attack blocked — target not reachable',
+
+      localStorage.setItem('attackResult', JSON.stringify(res.data))
+
+      addLog(
+        res.data.targetReached
+          ? '⚠ TARGET REACHED — INTRUSION DETECTED!'
+          : '✓ Attack blocked — target not reachable',
         res.data.targetReached ? '#ff3b3b' : '#00ff88'
       )
+
       addLog(`Risk Score: ${res.data.riskScore}/100`, '#ffaa00')
+      addLog('Simulation saved to Analysis page', '#00ff88')
+
     } catch (e) {
       addLog('Error running simulation', '#ff3b3b')
+      console.error(e)
     }
+
     setLoading(false)
   }
 
@@ -66,7 +81,6 @@ export default function AttackSimulator() {
       </div>
 
       <div className="grid grid-cols-2 gap-6">
-        {/* Controls */}
         <div className="space-y-4">
           <div className="bg-[#0d1117] border border-[#1e2d40] rounded-lg p-6 space-y-4">
             <h3 className="text-[#00d4ff] font-mono text-sm uppercase tracking-wider">Attack Configuration</h3>
@@ -131,14 +145,23 @@ export default function AttackSimulator() {
               <Zap className="w-4 h-4" />
               {loading ? 'SIMULATING...' : 'LAUNCH ATTACK'}
             </button>
+
+            {result && (
+              <button
+                onClick={() => navigate('/analysis')}
+                className="w-full py-3 bg-[#ffaa00] hover:bg-[#ffbb33] text-black font-mono font-bold rounded transition-all"
+              >
+                VIEW RESULT IN ANALYSIS
+              </button>
+            )}
           </div>
         </div>
 
-        {/* Terminal Log */}
         <div className="bg-[#0d1117] border border-[#1e2d40] rounded-lg p-6">
           <h3 className="text-[#00d4ff] font-mono text-sm uppercase tracking-wider mb-4">
             Attack Terminal
           </h3>
+
           <div className="bg-[#050810] rounded p-4 h-64 overflow-y-auto font-mono text-xs space-y-1">
             {log.length === 0 ? (
               <p className="text-[#1e2d40]">{'>'} Awaiting attack simulation...</p>
@@ -150,6 +173,7 @@ export default function AttackSimulator() {
                 </div>
               ))
             )}
+
             {loading && (
               <div className="flex gap-2">
                 <span className="text-[#3a4a5c]">{'>'}</span>
@@ -160,10 +184,8 @@ export default function AttackSimulator() {
         </div>
       </div>
 
-      {/* Results */}
       {result && (
         <div className="space-y-4 animate-fade-in">
-          {/* Status Banner */}
           <div className={`p-4 rounded-lg border flex items-center gap-3 ${
             result.targetReached
               ? 'bg-[#2a0d0d] border-[#ff3b3b]'
@@ -173,10 +195,12 @@ export default function AttackSimulator() {
               className="w-6 h-6"
               style={{ color: result.targetReached ? '#ff3b3b' : '#00ff88' }}
             />
+
             <div>
               <p className="font-mono font-bold" style={{ color: result.targetReached ? '#ff3b3b' : '#00ff88' }}>
                 {result.targetReached ? '⚠ INTRUSION DETECTED' : '✓ NETWORK SECURE'}
               </p>
+
               <p className="text-xs font-mono text-[#3a4a5c]">
                 Session ID: {result.sessionId} | Risk Score: {result.riskScore}/100
               </p>
@@ -184,24 +208,20 @@ export default function AttackSimulator() {
           </div>
 
           <div className="grid grid-cols-3 gap-4">
-            {/* BFS Path */}
             <div className="bg-[#0d1117] border border-[#1e2d40] rounded-lg p-4">
-              <h4 className="text-[#00d4ff] font-mono text-xs uppercase mb-3">BFS Path (Shortest Hops)</h4>
+              <h4 className="text-[#00d4ff] font-mono text-xs uppercase mb-3">BFS Path</h4>
               <div className="flex flex-wrap gap-1 items-center">
                 {result.bfsPath?.map((nodeId, i) => (
                   <span key={i} className="flex items-center gap-1">
                     <span className="bg-[#0d2137] border border-[#00d4ff33] text-[#00d4ff] px-2 py-1 rounded text-xs font-mono">
                       {getNodeName(nodeId)}
                     </span>
-                    {i < result.bfsPath.length - 1 && (
-                      <ChevronRight className="w-3 h-3 text-[#3a4a5c]" />
-                    )}
+                    {i < result.bfsPath.length - 1 && <ChevronRight className="w-3 h-3 text-[#3a4a5c]" />}
                   </span>
                 ))}
               </div>
             </div>
 
-            {/* Dijkstra Path */}
             <div className="bg-[#0d1117] border border-[#1e2d40] rounded-lg p-4">
               <h4 className="text-[#ffaa00] font-mono text-xs uppercase mb-3">
                 Easiest Path (Cost: {result.totalAttackCost?.toFixed(2)})
@@ -212,17 +232,14 @@ export default function AttackSimulator() {
                     <span className="bg-[#2a1a0d] border border-[#ffaa0033] text-[#ffaa00] px-2 py-1 rounded text-xs font-mono">
                       {getNodeName(nodeId)}
                     </span>
-                    {i < result.easiestPath.length - 1 && (
-                      <ChevronRight className="w-3 h-3 text-[#3a4a5c]" />
-                    )}
+                    {i < result.easiestPath.length - 1 && <ChevronRight className="w-3 h-3 text-[#3a4a5c]" />}
                   </span>
                 ))}
               </div>
             </div>
 
-            {/* Critical Nodes */}
             <div className="bg-[#0d1117] border border-[#1e2d40] rounded-lg p-4">
-              <h4 className="text-[#ff3b3b] font-mono text-xs uppercase mb-3">Critical Nodes (AP)</h4>
+              <h4 className="text-[#ff3b3b] font-mono text-xs uppercase mb-3">Critical Nodes</h4>
               <div className="flex flex-wrap gap-1">
                 {result.criticalNodes?.map(nodeId => (
                   <span key={nodeId} className="bg-[#2a0d0d] border border-[#ff3b3b33] text-[#ff3b3b] px-2 py-1 rounded text-xs font-mono">
@@ -233,15 +250,15 @@ export default function AttackSimulator() {
             </div>
           </div>
 
-          {/* All Paths */}
           <div className="bg-[#0d1117] border border-[#1e2d40] rounded-lg p-4">
             <h4 className="text-[#8b5cf6] font-mono text-xs uppercase mb-3">
-              All Attack Paths ({result.allAttackPaths?.length} found)
+              All Attack Paths ({result.allAttackPaths?.length || 0} found)
             </h4>
+
             <div className="space-y-2 max-h-40 overflow-y-auto">
               {result.allAttackPaths?.map((path, i) => (
                 <div key={i} className="flex items-center gap-1 text-xs font-mono">
-                  <span className="text-[#3a4a5c] w-6">#{i+1}</span>
+                  <span className="text-[#3a4a5c] w-6">#{i + 1}</span>
                   {path.map((nodeId, j) => (
                     <span key={j} className="flex items-center gap-1">
                       <span className="text-[#8b5cf6]">{getNodeName(nodeId)}</span>
@@ -253,7 +270,6 @@ export default function AttackSimulator() {
             </div>
           </div>
 
-          {/* Recommendations */}
           <div className="bg-[#0d1117] border border-[#1e2d40] rounded-lg p-4">
             <h4 className="text-[#00ff88] font-mono text-xs uppercase mb-3">Recommendations</h4>
             <div className="space-y-2">

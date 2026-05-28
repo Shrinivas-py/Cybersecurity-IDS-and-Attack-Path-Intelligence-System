@@ -21,3 +21,8 @@ export const attackApi = {
 export const remediationApi = {
   apply: (data) => api.post('/remediation/apply', data),
 }
+
+export const dbApi = {
+  query: (sql) => api.post('/db/query', { sql }),
+  procedure: (name) => api.get('/db/procedures', { params: { name } }),
+};

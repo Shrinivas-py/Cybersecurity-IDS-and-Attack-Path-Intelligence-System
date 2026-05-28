@@ -5,6 +5,7 @@ import NetworkMap from './pages/NetworkMap'
 import AttackSimulator from './pages/AttackSimulator'
 import Analysis from './pages/Analysis'
 import Remediation from './pages/Remediation'
+import DBConsole from './pages/DBConsole'
 
 export default function App() {
   return (
@@ -18,6 +19,7 @@ export default function App() {
             <Route path="/attack"    element={<AttackSimulator />} />
             <Route path="/analysis"  element={<Analysis />} />
             <Route path="/remediate" element={<Remediation />} />
+            <Route path="/dbconsole" element = {<DBConsole/>} />
           </Routes>
         </main>
       </div>
