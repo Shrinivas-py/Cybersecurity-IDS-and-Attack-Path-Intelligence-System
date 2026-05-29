@@ -28,6 +28,12 @@ const PRESETS = [
       { name: 'triggers', label: 'Show All Triggers', icon: Zap, desc: 'Lists all PostgreSQL triggers from information_schema' },
       { name: 'audit', label: 'Audit Log', icon: Eye, desc: 'audit_log — auto-populated by trigger on node risk update' },
       { name: 'alerts', label: 'Alert Log', icon: AlertTriangle, desc: 'Alerts generated during attack simulation' },
+      {
+  name: 'attack_logs',
+  label: 'Attack Event Logs',
+  icon: Terminal,
+  desc: 'Raw attack timeline: start, node visits, edge traversal, target result'
+},
     ]
   },
   {
