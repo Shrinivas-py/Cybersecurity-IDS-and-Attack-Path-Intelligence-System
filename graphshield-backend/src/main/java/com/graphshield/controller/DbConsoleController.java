@@ -153,6 +153,23 @@ public class DbConsoleController {
                     ORDER BY table_name
                     """;
 
+                case "attack_logs" ->
+    """
+    SELECT
+        l.log_id,
+        l.session_id,
+        l.event_time,
+        l.event_type,
+        sn.node_name AS source_node,
+        tn.node_name AS target_node,
+        l.message
+    FROM attack_event_log l
+    LEFT JOIN node sn ON l.source_node = sn.node_id
+    LEFT JOIN node tn ON l.target_node = tn.node_id
+    ORDER BY l.log_id ASC
+    LIMIT 50
+    """;
+
                 default ->
                     throw new IllegalArgumentException(
                         "Unknown procedure: " + name

@@ -1,6 +1,17 @@
 package com.graphshield.service;
 
-import com.graphshield.algorithms.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.stereotype.Service;
+
+import com.graphshield.algorithms.ArticulationPoint;
+import com.graphshield.algorithms.BFS;
+import com.graphshield.algorithms.DFS;
+import com.graphshield.algorithms.Dijkstra;
+import com.graphshield.algorithms.TarjanSCC;
 import com.graphshield.dto.AnalysisResultDTO;
 import com.graphshield.dto.AttackRequestDTO;
 import com.graphshield.entity.Alert;
@@ -9,9 +20,6 @@ import com.graphshield.repository.AlertRepository;
 import com.graphshield.repository.AttackSessionRepository;
 import com.graphshield.util.EdgeInfo;
 import com.graphshield.util.GraphBuilder;
-import org.springframework.stereotype.Service;
-
-import java.util.*;
 
 @Service
 public class AttackService {
@@ -24,13 +32,18 @@ public class AttackService {
     private final TarjanSCC tarjanSCC;
     private final AttackSessionRepository sessionRepository;
     private final AlertRepository alertRepository;
+    private final JdbcTemplate jdbcTemplate;
 
     public AttackService(
-        GraphBuilder graphBuilder, BFS bfs, DFS dfs,
-        Dijkstra dijkstra, ArticulationPoint articulationPoint,
+        GraphBuilder graphBuilder,
+        BFS bfs,
+        DFS dfs,
+        Dijkstra dijkstra,
+        ArticulationPoint articulationPoint,
         TarjanSCC tarjanSCC,
         AttackSessionRepository sessionRepository,
-        AlertRepository alertRepository
+        AlertRepository alertRepository,
+        JdbcTemplate jdbcTemplate
     ) {
         this.graphBuilder = graphBuilder;
         this.bfs = bfs;
@@ -40,64 +53,74 @@ public class AttackService {
         this.tarjanSCC = tarjanSCC;
         this.sessionRepository = sessionRepository;
         this.alertRepository = alertRepository;
+        this.jdbcTemplate = jdbcTemplate;
     }
 
     public AnalysisResultDTO simulateAttack(AttackRequestDTO request) {
 
-        Integer networkId = request.getNetworkId() != null
-                           ? request.getNetworkId() : 1;
+        Integer networkId = request.getNetworkId() != null ? request.getNetworkId() : 1;
         Integer attackerNode = request.getAttackerNodeId();
         Integer targetNode = request.getTargetNodeId();
         String attackType = request.getAttackType();
 
-        // Step 1: Load graph from DB into memory
-        Map<Integer, List<EdgeInfo>> graph =
-            graphBuilder.buildGraph(networkId);
+        Map<Integer, List<EdgeInfo>> graph = graphBuilder.buildGraph(networkId);
 
-        // Step 2: Save attack session to DB
         AttackSession session = new AttackSession();
         session.setAttackerNode(attackerNode);
         session.setTargetNode(targetNode);
         session.setAttackType(attackType);
         session.setStatus("RUNNING");
-        session.setRiskBefore(calculateGraphRiskScore(graph)); // static graph-based
+        session.setRiskBefore(calculateGraphRiskScore(graph));
         session = sessionRepository.save(session);
 
-        // Step 3: Run all algorithms
-        BFS.BFSResult bfsResult = bfs.execute(
-            graph, attackerNode, targetNode
+        logAttackEvent(
+            session.getSessionId(),
+            "ATTACK_STARTED",
+            attackerNode,
+            targetNode,
+            "Attack simulation started from Node " + attackerNode +
+            " targeting Node " + targetNode +
+            " using " + attackType
         );
-        Dijkstra.DijkstraResult dijkstraResult = dijkstra.execute(
-            graph, attackerNode, targetNode
-        );
-        DFS.DFSResult dfsResult = dfs.execute(
-            graph, attackerNode, targetNode
-        );
-        ArticulationPoint.APResult apResult =
-            articulationPoint.execute(graph);
+
+        BFS.BFSResult bfsResult = bfs.execute(graph, attackerNode, targetNode);
+        Dijkstra.DijkstraResult dijkstraResult = dijkstra.execute(graph, attackerNode, targetNode);
+        DFS.DFSResult dfsResult = dfs.execute(graph, attackerNode, targetNode);
+        ArticulationPoint.APResult apResult = articulationPoint.execute(graph);
         TarjanSCC.SCCResult sccResult = tarjanSCC.execute(graph);
 
-        // Step 4: Generate alerts if target reached
+        List<Integer> primaryPath = getPrimaryAttackPath(attackType, bfsResult, dijkstraResult, dfsResult);
+
+        saveAttackPathLogs(session.getSessionId(), primaryPath);
+
         if (bfsResult.targetReached) {
             generateAlerts(session.getSessionId(), targetNode, graph);
+
+            logAttackEvent(
+                session.getSessionId(),
+                "TARGET_REACHED",
+                attackerNode,
+                targetNode,
+                "Target Node " + targetNode + " was successfully reached by attacker"
+            );
+        } else {
+            logAttackEvent(
+                session.getSessionId(),
+                "ATTACK_BLOCKED",
+                attackerNode,
+                targetNode,
+                "Attack was blocked before reaching Target Node " + targetNode
+            );
         }
 
-        // Step 5: Calculate dynamic risk score based on actual results
-        int dynamicRisk = calculateDynamicRiskScore(
-            bfsResult, dijkstraResult, dfsResult
-        );
+        int dynamicRisk = calculateDynamicRiskScore(bfsResult, dijkstraResult, dfsResult);
 
-        // Step 6: Update session with final status and risk
         session.setRiskAfter(dynamicRisk);
         session.setStatus(bfsResult.targetReached ? "COMPLETED" : "BLOCKED");
         sessionRepository.save(session);
 
-        // Step 7: Build recommendations
-        List<String> recommendations = generateRecommendations(
-            bfsResult, dijkstraResult, apResult
-        );
+        List<String> recommendations = generateRecommendations(bfsResult, dijkstraResult, apResult);
 
-        // Step 8: Build and return result DTO
         AnalysisResultDTO result = new AnalysisResultDTO();
         result.setSessionId(session.getSessionId());
         result.setAttackType(attackType);
@@ -117,23 +140,100 @@ public class AttackService {
         return result;
     }
 
-    // Static graph-based risk — used for riskBefore (before attack runs)
-    private Integer calculateGraphRiskScore(
-        Map<Integer, List<EdgeInfo>> graph
+    private void logAttackEvent(
+        Integer sessionId,
+        String eventType,
+        Integer sourceNode,
+        Integer targetNode,
+        String message
     ) {
+        jdbcTemplate.update(
+            """
+            INSERT INTO attack_event_log
+            (session_id, event_type, source_node, target_node, message)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            sessionId,
+            eventType,
+            sourceNode,
+            targetNode,
+            message
+        );
+    }
+
+    private void saveAttackPathLogs(Integer sessionId, List<Integer> path) {
+        if (path == null || path.isEmpty()) {
+            logAttackEvent(
+                sessionId,
+                "NO_PATH_FOUND",
+                null,
+                null,
+                "No valid attack path found between attacker and target"
+            );
+            return;
+        }
+
+        for (int i = 0; i < path.size(); i++) {
+            Integer current = path.get(i);
+
+            logAttackEvent(
+                sessionId,
+                "NODE_VISITED",
+                current,
+                null,
+                "Attacker reached Node " + current
+            );
+
+            if (i < path.size() - 1) {
+                Integer next = path.get(i + 1);
+
+                logAttackEvent(
+                    sessionId,
+                    "EDGE_TRAVERSED",
+                    current,
+                    next,
+                    "Attacker moved from Node " + current + " to Node " + next
+                );
+            }
+        }
+    }
+
+    private List<Integer> getPrimaryAttackPath(
+        String attackType,
+        BFS.BFSResult bfsResult,
+        Dijkstra.DijkstraResult dijkstraResult,
+        DFS.DFSResult dfsResult
+    ) {
+        if ("DIJKSTRA".equalsIgnoreCase(attackType) || "DIJKSTRA_ATTACK".equalsIgnoreCase(attackType)) {
+            return dijkstraResult.easiestPath != null ? dijkstraResult.easiestPath : new ArrayList<>();
+        }
+
+        if ("DFS".equalsIgnoreCase(attackType) || "DFS_ATTACK".equalsIgnoreCase(attackType)) {
+            if (dfsResult.allPaths != null && !dfsResult.allPaths.isEmpty()) {
+                return dfsResult.allPaths.get(0);
+            }
+            return new ArrayList<>();
+        }
+
+        return bfsResult.path != null ? bfsResult.path : new ArrayList<>();
+    }
+
+    private Integer calculateGraphRiskScore(Map<Integer, List<EdgeInfo>> graph) {
         int totalEdges = 0;
         int totalWeight = 0;
+
         for (List<EdgeInfo> edges : graph.values()) {
             for (EdgeInfo e : edges) {
                 totalEdges++;
                 totalWeight += (e.getWeight() * 100);
             }
         }
+
         if (totalEdges == 0) return 0;
+
         return Math.min(100, totalWeight / totalEdges);
     }
 
-    // Dynamic risk — based on actual attack path results
     private Integer calculateDynamicRiskScore(
         BFS.BFSResult bfsResult,
         Dijkstra.DijkstraResult dijkstraResult,
@@ -143,19 +243,16 @@ public class AttackService {
 
         int score = 0;
 
-        // Factor 1: BFS path length — shorter path = higher risk
         if (bfsResult.path != null && !bfsResult.path.isEmpty()) {
             int hops = bfsResult.path.size();
             score += Math.max(0, 40 - (hops * 5));
         }
 
-        // Factor 2: Dijkstra cost — lower cost = easier attack = higher risk
         if (dijkstraResult.totalCost > 0) {
             int costScore = (int) Math.max(0, 30 - (dijkstraResult.totalCost * 10));
             score += costScore;
         }
 
-        // Factor 3: DFS paths — more paths = more attack surface = higher risk
         if (dfsResult.allPaths != null) {
             int pathScore = Math.min(30, dfsResult.allPaths.size() * 3);
             score += pathScore;
@@ -173,8 +270,7 @@ public class AttackService {
         alert.setSessionId(sessionId);
         alert.setNodeId(targetNode);
         alert.setSeverity("CRITICAL");
-        alert.setMessage("Target node " + targetNode +
-                        " is reachable by attacker!");
+        alert.setMessage("Target node " + targetNode + " is reachable by attacker!");
         alertRepository.save(alert);
     }
 
@@ -186,10 +282,7 @@ public class AttackService {
         List<String> recommendations = new ArrayList<>();
 
         if (bfsResult.targetReached) {
-            recommendations.add(
-                "🚨 CRITICAL: Attack path exists! " +
-                "Immediate action required."
-            );
+            recommendations.add("🚨 CRITICAL: Attack path exists! Immediate action required.");
         }
 
         if (!dijkstraResult.easiestPath.isEmpty()) {
@@ -197,22 +290,20 @@ public class AttackService {
                 "⚠️ Easiest attack path has " +
                 dijkstraResult.easiestPath.size() +
                 " hops. Consider adding firewall between nodes: " +
-                dijkstraResult.easiestPath.toString()
+                dijkstraResult.easiestPath
             );
         }
 
         if (!apResult.criticalNodes.isEmpty()) {
             recommendations.add(
                 "🔴 Critical nodes detected: " +
-                apResult.criticalNodes.toString() +
+                apResult.criticalNodes +
                 ". These nodes must be heavily monitored."
             );
         }
 
         if (recommendations.isEmpty()) {
-            recommendations.add(
-                "✅ No direct attack path found. Network appears secure."
-            );
+            recommendations.add("✅ No direct attack path found. Network appears secure.");
         }
 
         return recommendations;
