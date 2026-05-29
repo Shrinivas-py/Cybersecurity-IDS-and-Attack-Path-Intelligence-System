@@ -35,8 +35,9 @@ export const analysisApi = {
 }
 
 /* REMEDIATION */
+/* REMEDIATION */
 export const remediationApi = {
-  applyFix: (data) =>
+  apply: (data) =>
     API.post('/remediation/apply', data),
 }
 
