@@ -15,7 +15,8 @@ import com.graphshield.service.AttackService;
 @RequestMapping("/api/attack")
 @CrossOrigin(origins = {
     "http://localhost:3000",
-    "https://cybersecurity-ids-and-attack-path-i.vercel.app"
+    "https://cybersecurity-ids-and-attack-path-i.vercel.app",
+    "https://graphshield.shrinivas-rj.me"
 })
 public class AttackController {
 
