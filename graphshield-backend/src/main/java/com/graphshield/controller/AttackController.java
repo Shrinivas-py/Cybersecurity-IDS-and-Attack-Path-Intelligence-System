@@ -1,14 +1,22 @@
 package com.graphshield.controller;
 
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
 import com.graphshield.dto.AnalysisResultDTO;
 import com.graphshield.dto.AttackRequestDTO;
 import com.graphshield.service.AttackService;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/attack")
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = {
+    "http://localhost:3000",
+    "https://cybersecurity-ids-and-attack-path-i.vercel.app"
+})
 public class AttackController {
 
     private final AttackService attackService;

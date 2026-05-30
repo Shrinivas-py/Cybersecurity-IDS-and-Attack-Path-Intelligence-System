@@ -13,7 +13,10 @@ import com.graphshield.service.RemediationService;
 
 @RestController
 @RequestMapping("/api/remediation")
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = {
+    "http://localhost:3000",
+    "https://cybersecurity-ids-and-attack-path-i.vercel.app"
+})
 public class RemediationController {
 
     private final RemediationService remediationService;

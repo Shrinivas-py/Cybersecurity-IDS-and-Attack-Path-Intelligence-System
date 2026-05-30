@@ -16,7 +16,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/db")
-@CrossOrigin(origins = "http://localhost:3000")
+@CrossOrigin(origins = {
+    "http://localhost:3000",
+    "https://cybersecurity-ids-and-attack-path-i.vercel.app"
+})
 public class DbConsoleController {
 
     @Autowired
