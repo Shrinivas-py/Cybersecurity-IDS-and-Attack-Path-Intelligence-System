@@ -7,7 +7,6 @@ ALTER SEQUENCE edge_edge_id_seq RESTART WITH 1;
 
 -- =============================================
 -- TECHCORP ENTERPRISE NETWORK SIMULATION
--- Mid-size software company, 500 employees
 -- =============================================
 
 INSERT INTO node (node_name, node_type, ip_address, risk_level, network_id) VALUES
